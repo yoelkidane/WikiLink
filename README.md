@@ -4,7 +4,7 @@ A six degrees of separation themed Wikipedia Game.
 
 ## Overview
 
-Wiki-Linkdle is a game that challenges players to navigate through Wikipedia articles and find a connection between two random pages. The player must click through articles, starting from a random Wikipedia page, until they find the destination page. The game tracks how many articles the player has visited, the time it took to complete the game, and displays the results once the destination page is reached.
+Wiki-Link is a game that challenges players to navigate through Wikipedia articles and find a connection between two random pages. The player must click through articles, starting from a random Wikipedia page, until they find the destination page. The game tracks how many articles the player has visited, the time it took to complete the game, and displays the results once the destination page is reached.
 
 
 
