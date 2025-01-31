@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='article-style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='navbar.css') }}">
+    <title>Wiki-Linkdle: {{ title }}</title>
+
+<script>
+    const win = {{ "true" if win else "false" }};
+
+</script>
+    <style>
+
+        figure {
+            text-align: center;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        figcaption {
+            font-size: 0.8em;
+            color: #555;
+            margin-top: 5px;
+            clear: both;
+        }
+
+        .mw-file-element {
+            float: none;  /* This makes the image float to the left of the text */
+            margin-right: 15px;  /* Adds space between the image and text */
+            margin-bottom: 10px; /* Optional: adds space below the image */
+        }
+
+        p {
+            text-align: justify;  /* Optional: makes the text more evenly spaced and wraps neatly around the image */
+        }
+
+
+        /* Navbar and button styles consolidated */
+        #navbar, .summary-dropdown {
+        display: flex;
+        align-items: center; /* Vertically center all content in the navbar */
+        justify-content: space-between; /* Space out the left, center, and right sections */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #333;
+        color: white;
+        padding: 10px 20px; /* Add equal padding to keep navbar visually balanced */
+        z-index: 1000;
+        opacity: 1;
+        height: 60px; /* Explicit height to make centering easier */
+        box-sizing: border-box; /* Include padding in the height calculation */
+        }
+
+        #navbar a, #navbar button, #navbar span {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        #navbar button {
+            background-color: #555;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #navbar button[disabled] {
+            background-color: rgb(31, 31, 31);
+            cursor: default;
+        }
+
+        /* Center section styling to ensure clickability */
+        .center-section {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center content within the center-section */
+            gap: 10px;
+            position: absolute; /* Absolute positioning for the center-section */
+            left: 50%; /* Move to the center horizontally */
+            transform: translateX(-50%); /* Adjust back by 50% of its width */
+        }
+
+        /* Timer styling */
+        #timer {
+            font-weight: bold;
+        }
+
+        /* Summary dropdown styling */
+        .summary-dropdown {
+            display: none;
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #222;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            width: 300px;
+            height: auto;
+            text-align: center;
+            z-index: 1001;
+        }
+
+           /* Modal Overlay */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        /* Modal Content */
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 400px; /* Increased width */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            animation: fadeInScaleUp 0.6s ease-out; /* Applied only to modal-content */
+        }
+
+        .modal-content.hidden {
+            animation: fadeOutScaleDown 0.6s ease-out; /* New fade out animation when hidden */
+        }
+
+        /* Modal Buttons */
+        .modal-content button {
+            margin: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+
+        /* Toast Container */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        /* Toast Styling */
+        .toast {
+            background-color: #333;
+            color: #fff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* Toast Types */
+        .toast.error {
+            background-color: #f44336; /* Red for errors */
+        }
+
+        .toast.success {
+            background-color: #4caf50; /* Green for success */
+        }
+
+        /* Show Toast */
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #restart-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        #close-modal {
+            background-color: #dc3545;
+            color: white;
+        }
+
+       @keyframes fadeInScaleUp {
+           0% {
+               opacity: 0;
+               transform: scale(0.5);
+           }
+           50% {
+               opacity: 0.5;
+               transform: scale(1.1);
+           }
+           100% {
+               opacity: 1;
+               transform: scale(1);
+           }
+       }
+
+       @keyframes fadeOutScaleDown {
+           0% {
+               opacity: 1;
+               transform: scale(1);
+           }
+           50% {
+               opacity: 0.5;
+               transform: scale(1.1);
+           }
+           100% {
+               opacity: 0;
+               transform: scale(0.5);
+           }
+       }
+    </style>
+</head>
+
+
+<body>
+    <div id="navbar" class="navbar">
+        <!-- Left section: New Game button -->
+        <a href="/" id="new-game-button" style="text-decoration: none;">New Game</a>
+
+        <!-- Center section: Back button, connection text, and Learn More button -->
+        <div class="center-section">
+            <button id="back-button">Back</button>
+            <span id="connection-text">{{ session['connection_text'] }}</span>
+            <button id="toggle-summary">Learn More</button>
+        </div>
+
+        <!-- Right section: Click counter and Timer -->
+        <div style="display: flex; align-items: center;">
+            <span id="click-counter" class="freeze-click-counter">Pages Visted: {{ click_counter }}</span>
+            <span id="timer">Time Spent: 0:00</span>
+        </div>
+    </div>
+
+
+    <!-- Modal Structure with destination_article_url -->
+    <div id="win-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>&#x1F389; Congratulations, You Won! &#x1F389;</h2>
+            <p>You completed the game in:</p>
+            <p><strong>Clicks:</strong> {{ click_counter }}</p>
+            <p><strong>Time:</strong>
+                {% if time_taken %}
+                    {% set minutes = time_taken // 60 | int %}
+                    {% set seconds = time_taken % 60 %}
+
+                    {% if minutes > 0 %}
+                        {{ minutes }} {{ "minute" if minutes == 1 else "minutes" }}
+                    {% endif %}
+
+                    {% if minutes > 0 and seconds > 0 %}
+                        and
+                    {% endif %}
+
+                    {% if seconds > 0 %}
+                        {{ seconds|int }} {{ "second" if seconds == 1 else "seconds" }}
+                    {% endif %}
+
+                {% else %}
+                    Not available
+                {% endif %}
+            </p>
+            <p>You can either restart the game or explore further.</p>
+            <!-- Convert the link into a button -->
+            <button id="open-article-btn" onclick="window.open('{{ destination_article_url }}', '_blank', 'noopener noreferrer')">
+                Open Article
+            </button>
+            <button id="restart-button">New Game</button>
+        </div>
+    </div>
+
+
+    <!-- Toast Container -->
+    <div id="toast-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+                <div class="toast {{ category }}">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </div>
+
+
+    <div id="win-message">
+        a
+    </div>
+
+    <div id="page-content">
+        <h1>{{ title }}</h1>
+        <div id="wiki-content">
+            <div class="main-text">
+                {{ content | safe }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Article summary dropdown -->
+    <div id="article-summary" class="summary-dropdown" style="display: none;">
+        <strong>End Article Summary:</strong> {{ end_summary }}
+    </div>
+
+
+</body>
+</html>
+<script>
+    // Constants
+    const toggleButton = document.getElementById("toggle-summary");
+    const summaryDiv = document.getElementById("article-summary");
+    const backButton = document.getElementById("back-button");
+    const newGameButton = document.getElementById("new-game-button");
+    const timerElement = document.getElementById("timer");
+
+    //----------------------------------------------------//
+
+
+    const showToast = (message) => {
+            // Find or dynamically create the toast container
+            let toastContainer = document.getElementById("toast-container");
+            if (!toastContainer) {
+                toastContainer = document.createElement("div");
+                toastContainer.id = "toast-container";
+                document.body.appendChild(toastContainer);
+            }
+
+            // Create and insert a new toast message
+            const toast = document.createElement("div");
+            toast.className = "toast show";
+            toast.innerText = message;
+            toastContainer.appendChild(toast);
+
+            // Automatically remove the toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove("show");
+                toast.addEventListener("transitionend", () => toast.remove());
+            }, 3000);
+        };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const contentElement = document.getElementById("content"); // The content area containing Wikipedia links
+
+
+        const isValidWikipediaLink = (url) => {
+    // Base URL for Wikipedia links
+    const WIKIPEDIA_BASE = "/wiki/"; // Relative base for internal Wikipedia links
+    const FULL_WIKIPEDIA_BASE = "https://en.wikipedia.org/wiki/"; // Absolute base for external Wikipedia links
+
+    // Check if the URL starts with the base Wikipedia path or full Wikipedia domain
+    if (url.startsWith(WIKIPEDIA_BASE) || url.startsWith(FULL_WIKIPEDIA_BASE)) {
+        // Retrieve the page title, stripping out the base URL
+        const pageTitle = url.startsWith(WIKIPEDIA_BASE)
+            ? url.replace(WIKIPEDIA_BASE, "")
+            : url.replace(FULL_WIKIPEDIA_BASE, "");
+
+        // Exclude special pages, file pages, and other non-article pages
+        const isSpecialPage = pageTitle.startsWith("Special:") || pageTitle.startsWith("File:") || pageTitle.startsWith("Category:");
+        const hasFileExtension = pageTitle.match(/\.(jpg|jpeg|png|svg|gif|bmp|pdf|mp3|wav|txt)$/i); // common image, media, and document extensions
+
+        // Validate: The page title should not be empty, should not be a special or file page, and should not end with a file extension
+        return pageTitle.trim().length > 0 && !isSpecialPage && !hasFileExtension;
+    }
+
+    // All other links are invalid
+    return false;
+};
+
+        // Intercept all link clicks inside the page content
+        contentElement.addEventListener("click", (event) => {
+            const anchor = event.target.closest("a"); // Check if a click happened on a link
+            if (anchor) {
+                const href = anchor.getAttribute("href");
+
+                // If it’s a valid Wikipedia link, proceed normally
+                if (href && isValidWikipediaLink(href)) {
+                    return;
+                }
+
+                // Otherwise, prevent navigation, show a toast, and stop the event
+                event.preventDefault();
+                event.stopPropagation();
+                showToast("The link you clicked is not a valid Wikipedia article and cannot be visited.");
+            }
+        });
+    });
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const winModal = document.getElementById("win-modal");
+        const openArticleBtn = document.getElementById("open-article-btn");
+        const restartButton = document.getElementById("restart-button");
+
+        // Dynamically ensure article URL is valid or disable the button
+        const articleUrl = "{{ destination_article_url | safe }}"; // Passed from the backend
+        if (articleUrl) {
+            openArticleBtn.style.display = "inline-block"; // Show button if there's an article URL
+            openArticleBtn.setAttribute("href", articleUrl); // Ensure the link points to the correct article
+        } else {
+            openArticleBtn.style.display = "none"; // Hide button if no article URL exists
+        }
+
+        // Event: Show modal on win
+        const hasWon = {{ "true" if win else "false" }};
+        if (hasWon) {
+            winModal.style.display = "flex"; // Show the modal
+        }
+
+        // Restart game functionality
+        restartButton.addEventListener("click", () => {
+            window.location.href = "/";
+        });
+    });
+
+    //----------------------------------------------------//
+
+    // Toggle the summary display
+    toggleButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        summaryDiv.style.display = summaryDiv.style.display === "none" ? "block" : "none";
+    });
+
+    // Hide the back button and show "Back Used" after one press, set it in localStorage
+    backButton.addEventListener("click", (event) => {
+    event.preventDefault(); // Prevent default navigation behavior
+
+    // Fetch the server's response for the "Back" action
+    fetch("/back")
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error("Failed to fetch from the /back endpoint.");
+            }
+            return response.json();
+        })
+        .then((data) => {
+            // Check for undefined values and skip them
+            if (data && data.redirect_url && data.redirect_url !== "undefined") {
+                window.location.href = data.redirect_url; // Navigate to the valid URL
+            }
+            else {
+                // If invalid or undefined, show a toast and stop further actions
+                showToast("There is no previous article!");
+            }
+        })
+        .catch((error) => {
+            showToast("Error fetching data from the server.");
+            console.error(error);
+        });
+});
+
+    // Reset localStorage when New Game is clicked
+    newGameButton.addEventListener("click", () => {
+        fetch('/api/timer', { method: 'POST' })  // Reset timer on the server
+            .then(() => {
+                window.location.href = "/";  // Redirect to home page after resetting
+            })
+            .catch(error => console.error("Error resetting timer:", error));
+    });
+
+    //----------------------------------------------------//
+
+    // Timer functionality
+    function startTimer() {
+        const updateTimerFromServer = () => {
+            fetch('/api/timer')  // Fetch elapsed time from the server
+                .then(response => response.json())
+                .then(data => {
+                    const elapsedTime = data.elapsed_time;
+
+                    if (elapsedTime !== null) {
+                        const minutes = Math.floor(elapsedTime / 60);
+                        const seconds = Math.floor(elapsedTime % 60);
+                        timerElement.textContent = `Time Spent: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                })
+                .catch(error => console.error("Error fetching timer data:", error));
+        };
+
+        setInterval(updateTimerFromServer, 1000); // Update every second
+    }
+
+    if (!win) {
+        startTimer();
+    }
+
+
+    // Modal Elements
+    const restartButton = document.getElementById("restart-button");
+
+    // Function to Show Modal
+    function showWinModal() {
+        const winModal = document.getElementById("win-modal");
+
+        fetch('/api/timer') // Fetch elapsed time from server
+            .then(response => response.json())
+            .then(data => {
+                const elapsedTime = data.elapsed_time;
+
+                const minutes = Math.floor(elapsedTime / 60);
+                const seconds = Math.floor(elapsedTime % 60);
+
+                const clickCounter = {{ click_counter }}; // Retrieved from Flask context
+
+                let timeString = "";
+                if (minutes > 0) timeString += `${minutes} minute${minutes > 1 ? "s" : ""}`;
+                if (minutes > 0 && seconds > 0) timeString += " and ";
+                if (seconds > 0) timeString += `${seconds} second${seconds > 1 ? "s" : ""}`;
+
+                winModal.querySelector(".modal-content").innerHTML = `
+                    <h2>🎉 Congratulations, You Won! 🎉</h2>
+                    <p>You completed the game in:</p>
+                    <p><strong>Clicks:</strong> ${clickCounter}</p>
+                    <p><strong>Time:</strong> ${timeString}</p>
+                    <button id="restart-button">New Game</button>
+                    <button id="close-modal">Close</button>
+                `;
+
+                winModal.style.display = "flex";
+            })
+            .catch(error => {
+                console.error("Error fetching timer data for win modal:", error);
+                alert("There was an error fetching your final timer. Please try again.");
+            });
+    }
+
+    restartButton.addEventListener("click", () => {
+        window.location.href = "/"; // Redirect to New Game
+    });
+</script>
+
+
+
+
